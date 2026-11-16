@@ -1,0 +1,129 @@
+/*
+ * po_domain.sim — daily precipitation and air temperature on the cells of a domain (whole district or one basin)
+ *
+ *   Normals:        PoNormals   1991–2020 monthly normals (PRISM-type), wet-day frequency for the two-part method
+ *   Precipitation:  PoKriging   two-part (occurrence × amount), local PSO variograms, ordinary kriging on 7 stations
+ *   Temperature:    PoKriging   anomaly from the normals, per-cell daily lapse on the 50 nearest stations
+ *
+ * Target cells come from a shapefile (points = cell centres, or cell polygons) with an elevation field; the
+ * DEM is built from it (written as target_dem.asc in each output folder). Stations and data are CSV:
+ *   stations_<var>.csv   id,x,y,elevation
+ *   data_<var>.csv       date,<id1>,<id2>,...      (YYYY-MM-DD; empty field = missing)
+ * All coordinates in the CRS below (metres).
+ *
+ * Run:  OMS Console, or  ./run_oms.sh simulation/po_domain.sim
+ * Edit only the USER CONFIGURATION block.
+ */
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+
+// ============================================================================
+// USER CONFIGURATION
+// ============================================================================
+def domain = "_test_domain_shp"
+def cellsShp    = "$home/data/cells/po_cells_1km.shp"         // target cells
+def elevField   = "elevation"                                 // elevation field [m]
+def filledField = "elev_fill"                                 // 0/1 gap-filled elevation flag ("" = none)
+def crs         = "EPSG:3035"
+
+def stationsP   = "$home/data/stations_precip.csv"
+def dataP       = "$home/data/data_precip.csv"
+def stationsT   = "$home/data/stations_temp.csv"
+def dataT       = "$home/data/data_temp.csv"
+
+def normalsFrom = "1991-01-01"                                // normal period
+def normalsTo   = "2020-12-31"
+def runFrom = "2020-10-02"
+def runTo = "2020-10-03"
+
+def mode = "both"
+def format = "csv"
+def threads     = 12
+def out         = "$home/output/$domain"
+// ============================================================================
+
+OMS3.sim {
+    resource "$home/lib"
+
+    model {
+        components {
+            "cells"     "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"
+            "normalsP"  "pokriging.PoNormals"
+            "krigP"     "pokriging.PoKriging"
+            "normalsT"  "pokriging.PoNormals"
+            "krigT"     "pokriging.PoKriging"
+        }
+
+        parameter {
+            // ---- target cells
+            "cells.file"                 cellsShp
+
+            // ---- precipitation normals
+            "normalsP.variable"          "precip"
+            "normalsP.stationsFile"      stationsP
+            "normalsP.dataFile"          dataP
+            "normalsP.fTargetZ"          elevField
+            "normalsP.fTargetElevFilled" filledField
+            "normalsP.crs"               crs
+            "normalsP.normalsStart"      normalsFrom
+            "normalsP.normalsEnd"        normalsTo
+            "normalsP.threads"           threads
+            "normalsP.outputDir"         "$out/normals"
+
+            // ---- precipitation, two-part
+            "krigP.variable"             "precip"
+            "krigP.precipMethod"         "twopart"
+            "krigP.stationsFile"         stationsP
+            "krigP.dataFile"             dataP
+            "krigP.fTargetZ"             elevField
+            "krigP.fTargetElevFilled"    filledField
+            "krigP.crs"                  crs
+            "krigP.mode"                 mode
+            "krigP.target"               "grid"
+            "krigP.periodStart"          runFrom
+            "krigP.periodEnd"            runTo
+            "krigP.calibration"          "auto"
+            "krigP.outputFormat"         format
+            "krigP.threads"              threads
+            "krigP.outputDir"            "$out/precip"
+
+            // ---- temperature normals
+            "normalsT.variable"          "temp"
+            "normalsT.stationsFile"      stationsT
+            "normalsT.dataFile"          dataT
+            "normalsT.fTargetZ"          elevField
+            "normalsT.fTargetElevFilled" filledField
+            "normalsT.crs"               crs
+            "normalsT.normalsStart"      normalsFrom
+            "normalsT.normalsEnd"        normalsTo
+            "normalsT.threads"           threads
+            "normalsT.outputDir"         "$out/normals"
+
+            // ---- temperature, anomaly + local lapse
+            "krigT.variable"             "temp"
+            "krigT.tempMethod"           "anomaly"
+            "krigT.temperatureTrend"     "local"
+            "krigT.stationsFile"         stationsT
+            "krigT.dataFile"             dataT
+            "krigT.fTargetZ"             elevField
+            "krigT.fTargetElevFilled"    filledField
+            "krigT.crs"                  crs
+            "krigT.mode"                 mode
+            "krigT.target"               "grid"
+            "krigT.periodStart"          runFrom
+            "krigT.periodEnd"            runTo
+            "krigT.outputFormat"         format
+            "krigT.threads"              threads
+            "krigT.outputDir"            "$out/temp"
+        }
+
+        connect {
+            "cells.geodata"              "normalsP.inTargets"
+            "cells.geodata"              "krigP.inTargets"
+            "cells.geodata"              "normalsT.inTargets"
+            "cells.geodata"              "krigT.inTargets"
+            "normalsP.outNormalsDir"     "krigP.normalsDir"
+            "normalsT.outNormalsDir"     "krigT.normalsDir"
+        }
+    }
+}

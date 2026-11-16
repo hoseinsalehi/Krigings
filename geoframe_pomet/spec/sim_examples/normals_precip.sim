@@ -1,0 +1,35 @@
+// PoNormals - precipitation monthly normals M and wet-day frequency p (1991-2020), locked Po parameters.
+// Run:  java -cp "lib/*" oms3.CLI -r simulation/normals_precip.sim
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+OMS3.sim {
+    resource "$home/lib"
+    model {
+        components { "normals" "org.geoframe.interpolation.pokriging.PoNormals" }
+        parameter {
+            "normals.variable"        "precip"
+            "normals.stationsFile"    "$home/data/stations_precip.csv"
+            "normals.dataFile"        "$home/data/data_precip.csv"
+            "normals.missingValue"    ""
+            "normals.crs"             "EPSG:3035"
+            "normals.demFile"         "$home/data/dem_po_1km.tif"
+            "normals.normalsStart"    "1991-01-01"
+            "normals.normalsEnd"      "2020-12-31"
+            // regression of ln M on elevation (defaults shown for clarity)
+            "normals.regK"            15
+            "normals.regDz0"          500.0
+            "normals.regExtrapDz"     0.0          // no upward extrapolation above the highest of the K stations
+            "normals.slopeMin"        -0.3e-3      // ln(mm) per m  (x e^-0.3 = -25.9 %/km)
+            "normals.slopeMax"        0.8e-3       // ln(mm) per m  (x e^0.8 = +122.6 %/km)
+            "normals.slopeMode"       "annual"
+            // wet-day frequency normals for the two-part method
+            "normals.wetFrequency"    true
+            "normals.occThreshold"    1.0
+            "normals.wfK"             15
+            "normals.wfDz0"           1e9
+            "normals.wfExtrapDz"      0.0
+            "normals.threads"         12
+            "normals.outputDir"       "$home/output/normals"
+        }
+    }
+}

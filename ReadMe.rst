@@ -1,3 +1,11 @@
+Branch ``geoframe-pomet``
+========================
+
+This branch adds the GEOframe-PoMet interpolation (Po River District, 1-km daily precipitation and temperature,
+1991–2020) to the Krigings component: packages ``pokriging`` and ``krigingsCore`` in ``src/main/java``, the OMS
+project and the Python pipeline in ``geoframe_pomet/`` (start with ``geoframe_pomet/README.md``), and the list of
+changes to the upstream code in ``UPSTREAM_DIFF.md``.
+
 Krigings
 ========
 

@@ -1,0 +1,46 @@
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+
+
+
+
+OMS3.sim () {
+
+resource "$oms_prj/lib"
+
+ model() {
+ //model() {
+   components {
+
+        "vreader_station"                  "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"
+        "gParamEvaluator"                           "krigingsPointCase.GlobalParameterEvaluator"
+   }
+
+
+   parameter{
+
+
+    "vreader_station.file"                       "${home}/data/Brenta/Meteostations.shp"   // .shp meteostations
+
+	"gParamEvaluator.fStationsid"                "ID"                 // .shp id field
+	"gParamEvaluator.fStationsZ"			     "quota"              // .shp elevation field
+	"gParamEvaluator.tStart"			         "2018-10-01 00:00"   // start date
+	"gParamEvaluator.tTimeStep"			         "60"                 // timeseries timestep
+
+    "gParamEvaluator.doDetrended"                "False"    // detrended krigind with elevation
+	"gParamEvaluator.doIncludeZero"              "True"    // include zero value
+    "gParamEvaluator.doLogarithmic"              "True"    // use logarithmic of measures (only for precipitation)
+
+	"gParamEvaluator.pSemivariogramType"         "linear"   // type of empirical semivariogram
+	"gParamEvaluator.cutoffDivide" 		         "20"            // number of bins
+
+	"gParamEvaluator.inHValuesPath"              "${home}/data/Brenta/Precipitations_20182019.csv"   // .csv precip all stations
+
+   }
+   connect {
+
+    "vreader_station.geodata"                   "gParamEvaluator.inStations"
+   }
+ }
+}
+

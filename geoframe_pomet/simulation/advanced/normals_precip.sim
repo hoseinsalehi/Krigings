@@ -1,0 +1,23 @@
+// Monthly normals 1991-2020 for PoKriging (precip): station normals (gap-filled), PRISM-type 1 km normals, station LOO normals, wet-day frequency normals
+// Run: ./run_oms.sh simulation/advanced/normals_precip.sim   (oms3.CLI -r, as the OMS console). Defaults = locked Po parameters.
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+
+OMS3.sim {
+    resource "$home/lib"
+    model {
+        components { "normals" "pokriging.PoNormals" }
+        parameter {
+            "normals.variable"        "precip"
+            "normals.stationsFile"    "$home/data/stations_precip.csv"
+            "normals.dataFile"        "$home/data/data_precip.csv"
+            "normals.missingValue"    ""
+            "normals.demFile"         "$home/data/dem_po_1km.asc"
+            "normals.gridCellsFile"   "$home/data/grid_cells.csv"
+            "normals.normalsStart"    "1991-01-01"
+            "normals.normalsEnd"      "2020-12-31"
+            "normals.threads"         12
+            "normals.outputDir"       "$home/output/normals_java"
+        }
+    }
+}

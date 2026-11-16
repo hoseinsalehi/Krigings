@@ -92,4 +92,9 @@ public class Bessel implements Model{
 		return (double) x < 0.0 ? -ans : ans;
 	}
 
+	/** Gradient w.r.t. (sill, range, nugget) for the 0.9.9 Levenberg-Marquardt fitter: not available for this model. */
+	@Override
+	public double[] computeGradient() {
+		return null;
+	}
 }

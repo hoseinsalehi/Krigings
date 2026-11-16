@@ -1,0 +1,31 @@
+// PoKriging - daily precipitation, two-part method (final product), 1 km grid + station LOO.
+// precipMethod: direct | climatology (ratio) | twopart.  mode: interpolation | loo | both.
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+OMS3.sim {
+    resource "$home/lib"
+    model {
+        components { "krig" "org.geoframe.interpolation.pokriging.PoKriging" }
+        parameter {
+            "krig.variable"           "precip"
+            "krig.mode"               "both"
+            "krig.target"             "grid"           // or "points" + "krig.pointsFile"
+            "krig.precipMethod"       "twopart"
+            "krig.stationsFile"       "$home/data/stations_precip.csv"
+            "krig.dataFile"           "$home/data/data_precip.csv"
+            "krig.missingValue"       ""
+            "krig.crs"                "EPSG:3035"
+            "krig.demFile"            "$home/data/dem_po_1km.tif"
+            "krig.normalsDir"         "$home/output/normals"
+            "krig.periodStart"        "1991-01-01"
+            "krig.periodEnd"          "2020-12-31"
+            "krig.calibration"        "auto"           // monthly over the run when every month has >= 100 days
+            "krig.rngMode"            "numpy"          // equivalence with the Python pipeline
+            "krig.uncertaintyTable"   "$home/data/uncertainty_calibration_precip.csv"
+            "krig.diagnostics"        true
+            "krig.outputFormat"       "netcdf"
+            "krig.threads"            12
+            "krig.outputDir"          "$home/output/precip_twopart"
+        }
+    }
+}

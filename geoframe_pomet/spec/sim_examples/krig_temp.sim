@@ -1,0 +1,31 @@
+// PoKriging - daily temperature, anomaly method with per-cell daily lapse (production), 1 km grid + station LOO.
+// tempMethod: direct | anomaly.  temperatureTrend: local | none (| global: to be decided).
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+OMS3.sim {
+    resource "$home/lib"
+    model {
+        components { "krig" "org.geoframe.interpolation.pokriging.PoKriging" }
+        parameter {
+            "krig.variable"             "temp"
+            "krig.mode"                 "both"
+            "krig.target"               "grid"
+            "krig.tempMethod"           "anomaly"
+            "krig.temperatureTrend"     "local"
+            "krig.anomLapseMaxExtrapM"  300.0
+            "krig.stationsFile"         "$home/data/stations_temp.csv"
+            "krig.dataFile"             "$home/data/data_temp.csv"
+            "krig.missingValue"         ""
+            "krig.crs"                  "EPSG:3035"
+            "krig.demFile"              "$home/data/dem_po_1km.tif"
+            "krig.normalsDir"           "$home/output/normals"
+            "krig.periodStart"          "1991-01-01"
+            "krig.periodEnd"            "2020-12-31"
+            "krig.rngMode"              "numpy"
+            "krig.uncertaintyTable"     "$home/data/uncertainty_calibration_temp.csv"
+            "krig.outputFormat"         "netcdf"
+            "krig.threads"              12
+            "krig.outputDir"            "$home/output/temp_anomaly"
+        }
+    }
+}

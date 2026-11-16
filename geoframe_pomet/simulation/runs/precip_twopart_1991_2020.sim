@@ -1,0 +1,135 @@
+/*
+ * precip.sim - daily precipitation on the cells of a domain (whole Po district or one basin)
+ *
+ *   cells     OmsShapefileFeatureReader   target cells (cell centres or polygons) with an elevation field
+ *   normals   pokriging.PoNormals         monthly normals of the normal period (PRISM-type) + wet-day frequency
+ *   krig      pokriging.PoKriging         daily kriging: local spherical variogram on the 50 nearest stations
+ *                                         (PSO fit, every day and cell), ordinary kriging on the 7 nearest
+ *
+ * Stations and data are CSV (docs/CSV_AND_SIM_SCHEMA.md):
+ *   stations_precip.csv   id,x,y,elevation           (metres, CRS below)
+ *   data_precip.csv       date,<id1>,<id2>,...       (YYYY-MM-DD; empty field = missing)
+ * Output: <outDir>/precip_<Y>.nc (values) and <outDir>/diagnostics_precip_<Y>.nc, one file per year,
+ *         daily_summary_precip_<Y>.csv, run_config.json; LOO tables loo_precip_<Y>.csv when mode = loo | both.
+ *
+ * Run: OMS Console (open this folder as project, Java 11) or  ./run_oms.sh simulation/precip.sim
+ * Edit only the USER CONFIGURATION block.
+ */
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+
+// ============================================================================
+// USER CONFIGURATION
+// ============================================================================
+// ---- method
+//   "direct"       ordinary kriging of the daily station values; negative estimates set to 0
+//   "climatology"  ratio method: station value / daily climatology (monthly normal / days in month,
+//                  floor 0.05 mm) is kriged and multiplied by the gridded daily climatology
+//   "twopart"      two-part method (recommended): occurrence (wet = >= 1 mm) kriged as the anomaly from
+//                  the wet-day frequency normal p(x) and calibrated so that each cell keeps its normal number of
+//                  wet days; wet-day amount kriged as the ratio to the intensity normal i(x) = M / (p days)
+def method      = "twopart"
+
+// ---- NetCDF outputs: "default", "all", or a comma list of names.
+//   "default" = precip, kriging_std (+ precip_uncertainty) and all diagnostics (behaviour before outputVariables).
+//   Value file precip_<Y>.nc:
+//     every method   precip, kriging_std, precip_uncertainty (only with an uncertaintyTable)
+//     direct         estimate_raw
+//     climatology    normal_daily, ratio
+//     twopart        wet_probability, occurrence_anomaly, occurrence_threshold, wet_flag, amount, amount_std,
+//                    amount_ratio, wetfreq_normal, intensity_normal
+//   Diagnostics file diagnostics_precip_<Y>.nc:
+//     every method   D1, D7, D50, range, nugget_fraction, log10_sill, n_negative_weights, n_eff,
+//                    R_pos_half, R_pos_2_3, R_pos_1_3, R_abs90, qc_flags
+//     twopart        range_amount, nugget_fraction_amount, log10_sill_amount, R_pos_half_amount
+//   A name that does not exist for the method stops the run with the list of allowed names (README: definitions).
+def outputsByMethod = [
+    direct     : "precip,kriging_std,D1,D7,qc_flags",
+    climatology: "precip,kriging_std,normal_daily,ratio,D1,D7,qc_flags",
+    twopart    : "precip,kriging_std,wet_probability,wet_flag,amount,wetfreq_normal,intensity_normal,D1,D7,qc_flags"]
+def outputs = "precip,kriging_std"
+
+// ---- run
+def mode = "both"
+def runFrom     = "1991-01-01"                                // interpolation period
+def runTo       = "2020-12-31"
+def normalsFrom = "1991-01-01"                                // normal period of PoNormals
+def normalsTo   = "2020-12-31"
+
+// ---- target cells
+def cellsShp    = "$home/data/cells/po_cells_1km.shp"         // 88,074 cells of the Po product
+def elevField   = "elevation"                                 // elevation field [m]
+def filledField = "elev_fill"                                 // 0/1 gap-filled-elevation flag ("" = none)
+def crs         = "EPSG:3035"
+
+// ---- stations (not included in the package: put the files in data/)
+def stations = home + "/data/stations_precip.csv"
+def data = home + "/data/data_precip.csv"
+
+// ---- two-part occurrence calibration (twopart only)
+//   "auto"   thresholds from the run itself: per month if every calendar month has >= 100 run days, otherwise ONE
+//            pooled threshold per cell over the whole run (short runs, e.g. a few days or one year, are pooled)
+//   "table"  read cell,month,threshold from thresholdTable; the production table of the 1991-2020 production run
+//            reproduces the published product for any period (data/occurrence_thresholds.csv, 88,074 cells x 12 months;
+//            only for the po_cells_1km.shp grid: cell numbers = row-major cells of that grid)
+def calibration = "auto"
+def thresholdTable = "$home/data/occurrence_thresholds.csv"
+
+// ---- machine
+def threads     = 12
+def outDir = home + "/output/geoframe_twopart_1991_2020"
+def compress    = "/opt/homebrew/bin/nccopy"                  // nccopy path -> NetCDF-4/zlib; "" = NetCDF-3 (larger)
+// ============================================================================
+
+OMS3.sim {
+    resource "$home/lib"
+
+    model {
+        components {
+            "cells"    "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"
+            "normals"  "pokriging.PoNormals"
+            "krig"     "pokriging.PoKriging"
+        }
+
+        parameter {
+            "cells.file"                cellsShp
+
+            "normals.variable"          "precip"
+            "normals.stationsFile"      stations
+            "normals.dataFile"          data
+            "normals.fTargetZ"          elevField
+            "normals.fTargetElevFilled" filledField
+            "normals.crs"               crs
+            "normals.normalsStart"      normalsFrom
+            "normals.normalsEnd"        normalsTo
+            "normals.threads"           threads
+            "normals.nccopy"            compress
+            "normals.outputDir"         "$outDir/normals"
+
+            "krig.variable"             "precip"
+            "krig.precipMethod"         method
+            "krig.stationsFile"         stations
+            "krig.dataFile"             data
+            "krig.fTargetZ"             elevField
+            "krig.fTargetElevFilled"    filledField
+            "krig.crs"                  crs
+            "krig.mode"                 mode
+            "krig.target"               "grid"
+            "krig.periodStart"          runFrom
+            "krig.periodEnd"            runTo
+            "krig.calibration"          calibration
+            "krig.occurrenceThresholds" thresholdTable
+            "krig.outputVariables"      outputs
+            "krig.outputFormat"         "netcdf"
+            "krig.nccopy"               compress
+            "krig.threads"              threads
+            "krig.outputDir"            outDir
+        }
+
+        connect {
+            "cells.geodata"             "normals.inTargets"
+            "cells.geodata"             "krig.inTargets"
+            "normals.outNormalsDir"     "krig.normalsDir"
+        }
+    }
+}

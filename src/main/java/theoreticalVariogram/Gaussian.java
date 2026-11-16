@@ -16,38 +16,44 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+/* Source reconstructed from Kriging-2023-01-11-0.9.9.jar (CFR 0.152 decompilation, cleaned 2026; see UPSTREAM_DIFF.md). */
 package theoreticalVariogram;
 
-public class Gaussian implements Model{
+import theoreticalVariogram.Model;
 
-	double dist;
-	double sill;
-	double range;
-	double nug;
+public class Gaussian
+implements Model {
+    double dist;
+    double sill;
+    double range;
+    double nug;
+    boolean isOk = false;
 
+    public Gaussian(double dist, double sill, double range, double nug) {
+        this.dist = dist;
+        this.sill = sill;
+        this.range = range;
+        this.nug = nug;
+        this.isOk = nug >= 0.0 && sill >= 0.0 && range >= 0.0;
+    }
 
-	public Gaussian (double dist, double sill, double range, double nug){	
-		this.dist=dist;
-		this.sill=sill;
-		this.range=range;
-		this.nug=nug;		
-	}
+    @Override
+    public double computeSemivariance() {
+        double result = Double.MAX_VALUE;
+        double hr = this.dist / this.range;
+        if (this.isOk) {
+            result = this.dist != 0.0 ? this.nug + this.sill * (1.0 - Math.exp(-(hr * hr))) : this.nug;
+        }
+        return result;
+    }
 
-
-
-	@Override
-	public double computeSemivariance() {
-
-		double result=0;
-		double hr= dist / (range);
-
-		if (dist != 0.0) {
-			 result= nug + sill * (1.0 - (Math.exp(-(hr * hr))));
-		}
-
-		return result;
-	}
-
-
+    @Override
+    public double[] computeGradient() {
+        double[] gradient = new double[]{Double.NaN, Double.NaN, Double.NaN};
+        if (this.isOk) {
+            gradient = new double[]{1.0 - Math.exp(-(this.dist / this.range)), -this.sill * Math.exp(-(this.dist * this.dist / (this.range * this.range))) * 2.0 * (this.dist * this.dist / (this.range * this.range * this.range)), 1.0};
+        }
+        return gradient;
+    }
 }
+

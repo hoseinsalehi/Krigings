@@ -1,0 +1,98 @@
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+def var = "temp_Krig"
+
+
+
+OMS3.sim () {
+
+resource "$oms_prj/lib"
+    
+ model(while:"reader_data.doProcess") {
+ //model() {
+   components {
+   
+        "reader_data"                       "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorReader"
+        "vreader_station"                   "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"
+        "vinterpolate_station"              "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"
+           
+        "kriging"                           "krigingsPointCase.Krigings"  
+
+        "writer_interpolated"               "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter" 
+        //"writer_params"                     "org.hortonmachine.gears.io.timedependent.OmsTimeSeriesIteratorWriter"
+     
+   }
+
+  
+   parameter{
+   
+        "reader_data.file"                  "${home}/data/Brenta//Temperatures_20182019.csv"
+        "reader_data.idfield"               "ID"
+        "reader_data.tStart"                "2018-10-01 00:00"
+        "reader_data.tEnd"                  "2018-10-05 23:00"
+        "reader_data.tTimestep"             "60"
+        "reader_data.fileNovalue"           "-9999"
+
+        "vreader_station.file"              "${home}/data/Brenta//MeteoStations.shp"
+		// name of the field with the name of station in the shapefile of meteo station    
+		"kriging.fStationsid"               "ID"
+		"kriging.fStationsZ"                "quota"
+        
+        "vinterpolate_station.file"         "${home}/data/Brenta//330/centroid_ID_330.shp"
+		// name of the field of subbasin in the shapefile of interpolation point(subbasin centroids)  
+		"kriging.fInterpolateid"            "basinid"
+		"kriging.fPointZ"				    "elev_m"
+
+        "kriging.doDetrended"               "False"
+		"kriging.doIncludeZero"             "True"
+        "kriging.doLogarithmic"             "False"
+		"kriging.inNumCloserStations"       "0"
+		"kriging.cutoffDivide" 		        "20"
+		"kriging.boundedToZero"             "False"
+		//"kriging.inHValuesPath"             "${home}/data/Brenta//Temperatures_20182019.csv"
+        // parameter of the writing component   
+
+        "kriging.pSemivariogramType"                "exponential"
+        "kriging.pAGlobal"                          "220702.0965546152"
+
+        "kriging.pSGlobal"                          "238.89893330101154"
+
+        "kriging.pNugGlobal"                        "0.0"
+
+        //"kriging.pAGlobalDeTrended"                 "$a_global_trend"
+
+        //"kriging.pSGlobalDeTrended"                 "$sill_global_trend"
+
+        //"kriging.pNugGlobalDeTrended"               "$nug_global_trend"
+
+
+        "kriging.tTimeStep"                         "60"
+        //"kriging.globalDetrendedVariogramType"      "$detrended_type"
+        "kriging.globalVariogramType"               "exponential"
+
+        "writer_interpolated.file"                  "/path/to/OMS_Project_Brenta_GWS2025_GEOM_KRIG/out/new_temp_330.csv"
+        "writer_interpolated.tStart"                "2018-10-01 00:00"
+        "writer_interpolated.tTimestep"             "60"
+
+
+        //"writer_params.file"                  "${home}/data/Brenta//330/krigin_params_${var}_330.csv"
+        //"writer_params.tStart"                "2018-10-01 00:00"
+        //"writer_params.tTimestep"             "60"
+
+
+   }
+   connect {
+
+        "reader_data.outData"                       "kriging.inData"
+        "vreader_station.geodata"                   "kriging.inStations"
+        "vinterpolate_station.geodata"              "kriging.inInterpolate"
+        "kriging.outData"                           "writer_interpolated.inData"
+        //"kriging.outVariogramParams"                "writer_params.inData"
+
+   }
+
+ }
+
+}
+
+

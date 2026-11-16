@@ -1,0 +1,15 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=~/.claude-science/orgs/8474b5ad-219e-4442-98ec-b30b8d225a54/workspaces/b3e68a7a-b750-488c-bb9c-3731392f21b7/.tmp
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by org.codehaus.groovy.reflection.CachedClass$3$1 (file:~/Documents/GEPTOP/GEOET_CLEAN_TASK/OMS_Project_GEOET_clean_modified/lib/groovy-all-2.3.9.jar) to method java.lang.Object.finalize()
+WARNING: Please consider reporting this to the maintainers of org.codehaus.groovy.reflection.CachedClass$3$1
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+Reading features from shapefile: Meteostations.shp
+Finished.
+evaluate global params
+linear errore 0.04020957986834302
+Global value for nugget: 0.0 sill:1.2892966988528525 range: 5459.205645503307  semivariogram type:linear
+
+real	0m9.060s
+user	0m13.806s
+sys	0m3.718s

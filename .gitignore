@@ -3,3 +3,19 @@
 /.nb-gradle/
 /.idea/src/main/java/org
 /build/
+
+# --- geoframe-pomet branch
+# build products
+build/
+.gradle/
+*.class
+# Python
+__pycache__/
+*.pyc
+# OMS project data and results (station data are not redistributed)
+geoframe_pomet/data/
+geoframe_pomet/output/
+geoframe_pomet/python/data/
+geoframe_pomet/python/output/
+# macOS
+.DS_Store

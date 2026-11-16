@@ -36,6 +36,11 @@ repositories {
 
     mavenCentral() //jgt
 
+    maven {
+        // netcdf-java (cdm-core 5.5.3), used by pokriging for NetCDF output
+        url 'https://artifacts.unidata.ucar.edu/repository/unidata-all/'
+    }
+
     flatDir {
         dirs 'lib'
     }
@@ -60,6 +65,9 @@ dependencies {
     implementation group: 'org.hortonmachine', name: 'hm-modules', version: '0.10.4'
     
     implementation group: 'net.sourceforge.hatbox', name: 'hatbox', version: '1.0.b7'
+
+    // NetCDF output of pokriging (geoframe_pomet)
+    implementation group: 'edu.ucar', name: 'cdm-core', version: '5.5.3'
 
         // Use JUnit test framework
     testImplementation 'junit:junit:4.+'

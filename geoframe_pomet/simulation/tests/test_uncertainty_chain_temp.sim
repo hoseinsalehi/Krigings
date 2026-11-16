@@ -1,0 +1,39 @@
+// Chain test PoKriging (mode = loo, 10 reference dates of 2020) -> PoUncertainty (k table + coverage summary).
+// Run: ./run_oms.sh simulation/tests/test_uncertainty_chain_temp.sim     Output: $home/output/tests/uncertainty_chain_temp
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+def outDir = "$home/output/tests/uncertainty_chain_temp"
+
+OMS3.sim {
+    resource "$home/lib"
+    model {
+        components {
+            "krig" "pokriging.PoKriging"
+            "unc"  "pokriging.PoUncertainty"
+        }
+        parameter {
+            "krig.variable"            "temp"
+            "krig.stationsFile"        "$home/data/stations_temp.csv"
+            "krig.dataFile"            "$home/data/data_temp.csv"
+            "krig.mode"                "loo"
+            "krig.demFile"             "$home/data/dem_po_1km.asc"
+            "krig.gridCellsFile"       "$home/data/grid_cells.csv"
+            "krig.datesFile"           "$home/tests/eq/dates_reference.csv"
+            "krig.periodStart"         "2020-01-01"
+            "krig.periodEnd"           "2020-12-31"
+            "krig.normalsDir"          "$home/reference_run/normals_rebuild/normals"
+            "krig.outputFormat"        "csv"
+            "krig.threads"             3
+            "krig.tempMethod"          "anomaly"
+            "krig.outputDir"           outDir
+
+            "unc.variable"             "temp"
+            "unc.stationsFile"         "$home/data/stations_temp.csv"
+            "unc.periodStart"          "2020-01-01"
+            "unc.periodEnd"            "2020-12-31"
+        }
+        connect {
+            "krig.outLooDir"           "unc.looDir"
+        }
+    }
+}

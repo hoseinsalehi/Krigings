@@ -1,0 +1,26 @@
+// PoNormals - temperature monthly normals (1991-2020), locked Po parameters.
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+OMS3.sim {
+    resource "$home/lib"
+    model {
+        components { "normals" "org.geoframe.interpolation.pokriging.PoNormals" }
+        parameter {
+            "normals.variable"        "temp"
+            "normals.stationsFile"    "$home/data/stations_temp.csv"
+            "normals.dataFile"        "$home/data/data_temp.csv"
+            "normals.missingValue"    ""
+            "normals.crs"             "EPSG:3035"
+            "normals.demFile"         "$home/data/dem_po_1km.tif"
+            "normals.regK"            25
+            "normals.regDz0"          300.0
+            "normals.regExtrapDz"     1e9
+            "normals.regExtrapLapse"  -0.0075      // degC/m above the highest of the K stations (steeper of local and this)
+            "normals.slopeMin"        -10.0e-3
+            "normals.slopeMax"        3.0e-3
+            "normals.slopeMode"       "monthly"
+            "normals.threads"         12
+            "normals.outputDir"       "$home/output/normals"
+        }
+    }
+}

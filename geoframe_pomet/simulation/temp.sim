@@ -1,0 +1,144 @@
+/*
+ * temp.sim - daily mean air temperature on the cells of a domain (whole Po district or one basin)
+ *
+ *   cells     OmsShapefileFeatureReader   target cells (cell centres or polygons) with an elevation field
+ *   normals   pokriging.PoNormals         monthly temperature normals of the normal period (PRISM-type)
+ *   krig      pokriging.PoKriging         anomaly method with local lapse: daily station anomalies from the station
+ *                                         normals; per cell a lapse regression on the 50 nearest stations, a local
+ *                                         spherical variogram (PSO fit) of the detrended anomalies and ordinary
+ *                                         kriging on the 7 nearest; temperature = gridded normal + kriged anomaly
+ *   unc       pokriging.PoUncertainty     (optional, makeUncertainty) LOO calibration of kriging_std: k(season, class)
+ *
+ * Stations and data are CSV (docs/CSV_AND_SIM_SCHEMA.md):
+ *   stations_temp.csv   id,x,y,elevation           (metres, CRS below)
+ *   data_temp.csv       date,<id1>,<id2>,...       (YYYY-MM-DD, degC; empty field = missing)
+ * Output: <outDir>/temp_<Y>.nc (values) and <outDir>/diagnostics_temp_<Y>.nc, one file per year,
+ *         daily_summary_temp_<Y>.csv, run_config.json; LOO tables loo_temp_<Y>.csv when mode = loo | both;
+ *         with makeUncertainty uncertainty_temp_<first>_<last>.csv + uncertainty_summary_temp_<first>_<last>.csv.
+ *
+ * Run: OMS Console (open this folder as project, Java 11) or  ./run_oms.sh simulation/temp.sim
+ * Edit only the USER CONFIGURATION block.
+ */
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+
+// ============================================================================
+// USER CONFIGURATION
+// ============================================================================
+// ---- method: anomaly from the monthly normals with a local daily lapse (the method of the Po product).
+//   Advanced options, not used for the product: tempMethod = "direct" (kriging of the raw temperatures, local
+//   lapse), temperatureTrend = "global" (one daily lapse regression on all stations) or "none" (no lapse).
+def tempMethod  = "anomaly"
+def trend       = "local"
+
+// ---- NetCDF outputs: "default", "all", or a comma list of names.
+//   "default" = temp, kriging_std (+ temp_uncertainty) and all diagnostics (behaviour before outputVariables).
+//   Value file temp_<Y>.nc:      temp, kriging_std, temp_uncertainty (only with an uncertaintyTable),
+//                                anomaly, normal_daily, residual, lapse_trend
+//                                (temp = normal_daily + anomaly; anomaly = residual + lapse_trend)
+//   Diagnostics file diagnostics_temp_<Y>.nc:
+//                                lapse, lapse_r2, D1, D7, D50, range, nugget_fraction, log10_sill,
+//                                n_negative_weights, n_eff, R_pos_half, R_pos_2_3, R_pos_1_3, R_abs90, qc_flags
+//   A name that does not exist stops the run with the list of allowed names (README: definitions).
+def outputs     = "temp,kriging_std,anomaly,normal_daily,lapse,lapse_r2,D1,D7,D50,range,nugget_fraction,log10_sill,n_negative_weights,n_eff,R_pos_half,R_pos_2_3,R_pos_1_3,R_abs90,qc_flags"
+
+// ---- run
+def mode        = "interpolation"                             // interpolation (grid) | loo (station leave-one-out) | both
+def runFrom     = "1991-01-01"                                // interpolation period
+def runTo       = "2020-12-31"
+def normalsFrom = "1991-01-01"                                // normal period of PoNormals
+def normalsTo   = "2020-12-31"
+
+// ---- target cells
+def cellsShp    = "$home/data/cells/po_cells_1km.shp"         // 88,074 cells of the Po product
+def elevField   = "elevation"                                 // elevation field [m]
+def filledField = "elev_fill"                                 // 0/1 gap-filled-elevation flag ("" = none)
+def crs         = "EPSG:3035"
+
+// ---- stations (not included in the package: put the files in data/)
+def stations    = "$home/data/stations_temp.csv"
+def data        = "$home/data/data_temp.csv"
+
+// ---- calibrated uncertainty (docs/UNCERTAINTY_CALIBRATION.md)
+//   makeUncertainty   true: PoUncertainty calibrates the kriging_std with the LOO errors of THIS run (needs mode = loo | both):
+//                     k(season, class) so that +-1.96 k kriging_std covers 95 % of the LOO errors, class = station-elevation band (<500, 500-1000, 1000-1500, 1500-2000, >=2000 m);
+//                     writes <outDir>/uncertainty_temp_<first>_<last>.csv (the table below) and
+//                     <outDir>/uncertainty_summary_temp_<first>_<last>.csv (coverage at uncNominal levels, cross-validated
+//                     by station halves). false: no calibration.
+//   uncertaintyTable  existing k table -> temp_uncertainty = kriging_std x k in the value file (and in the LOO tables);
+//                     "" = none. The anomaly product table (1991-2020 LOO) is "$home/data/uncertainty_temp_v5.csv";
+//                     a table made with makeUncertainty can be given here in a later run (not in the same run).
+def makeUncertainty  = false
+def uncertaintyTable = ""
+def uncNominal       = "0.5,0.8,0.9,0.95"                       // summary levels (must contain 0.95)
+
+// ---- machine
+def threads     = 12
+def outDir      = "$home/output/temp_$tempMethod"
+def compress    = "/opt/homebrew/bin/nccopy"                  // nccopy path -> NetCDF-4/zlib; "" = NetCDF-3 (larger)
+// ============================================================================
+
+// with an uncertaintyTable, temp_uncertainty is added to an explicit output list
+def outputsAll = (uncertaintyTable && !(outputs in ["default", "all"]) && !outputs.split(",").contains("temp_uncertainty")) ? outputs + ",temp_uncertainty" : outputs
+
+OMS3.sim {
+    resource "$home/lib"
+
+    model {
+        components {
+            "cells"    "org.hortonmachine.gears.io.shapefile.OmsShapefileFeatureReader"
+            "normals"  "pokriging.PoNormals"
+            "krig"     "pokriging.PoKriging"
+            "unc"      "pokriging.PoUncertainty"
+        }
+
+        parameter {
+            "cells.file"                cellsShp
+
+            "normals.variable"          "temp"
+            "normals.stationsFile"      stations
+            "normals.dataFile"          data
+            "normals.fTargetZ"          elevField
+            "normals.fTargetElevFilled" filledField
+            "normals.crs"               crs
+            "normals.normalsStart"      normalsFrom
+            "normals.normalsEnd"        normalsTo
+            "normals.threads"           threads
+            "normals.nccopy"            compress
+            "normals.outputDir"         "$outDir/normals"
+
+            "krig.variable"             "temp"
+            "krig.tempMethod"           tempMethod
+            "krig.temperatureTrend"     trend
+            "krig.stationsFile"         stations
+            "krig.dataFile"             data
+            "krig.fTargetZ"             elevField
+            "krig.fTargetElevFilled"    filledField
+            "krig.crs"                  crs
+            "krig.mode"                 mode
+            "krig.target"               "grid"
+            "krig.periodStart"          runFrom
+            "krig.periodEnd"            runTo
+            "krig.outputVariables"      outputsAll
+            "krig.outputFormat"         "netcdf"
+            "krig.nccopy"               compress
+            "krig.threads"              threads
+            "krig.outputDir"            outDir
+            "krig.uncertaintyTable"     uncertaintyTable
+
+            "unc.enabled"               makeUncertainty
+            "unc.variable"              "temp"
+            "unc.stationsFile"          stations
+            "unc.periodStart"           runFrom
+            "unc.periodEnd"             runTo
+            "unc.nominalLevels"         uncNominal
+        }
+
+        connect {
+            "cells.geodata"             "normals.inTargets"
+            "cells.geodata"             "krig.inTargets"
+            "normals.outNormalsDir"     "krig.normalsDir"
+            "krig.outLooDir"            "unc.looDir"
+        }
+    }
+}

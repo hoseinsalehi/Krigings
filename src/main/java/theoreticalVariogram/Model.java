@@ -16,14 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+/* Source reconstructed from Kriging-2023-01-11-0.9.9.jar (CFR 0.152 decompilation, cleaned 2026; see UPSTREAM_DIFF.md). */
 package theoreticalVariogram;
 
-/**
- * The  Model interface.
- */
 public interface Model {
+    public double computeSemivariance();
 
-	
-	abstract public double computeSemivariance ();
-
+    public double[] computeGradient();
 }
+

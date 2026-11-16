@@ -463,31 +463,7 @@ public class Krigings extends HMModel {
 	 * @return the double[][] matrix with the covariance
 	 */
 	private double[][] covMatrixCalculating(double[] x, double[] y, double[] z, int n) {
-
-		double[][] covarianceMatrix = new double[n + 1][n + 1];
-
-		for (int j = 0; j < n; j++) {
-			for (int i = 0; i < n; i++) {
-				double rx = x[i] - x[j];
-				double ry = y[i] - y[j];
-				double rz = z[i] - z[j];
-
-
-				covarianceMatrix[j][i] = variogram(nugget, range, sill, rx, ry, rz);
-				covarianceMatrix[i][j] = variogram(nugget, range, sill, rx, ry, rz);
-
-			}
-		}
-
-
-		for (int i = 0; i < n; i++) {
-			covarianceMatrix[i][n] = 1.0;
-			covarianceMatrix[n][i] = 1.0;
-
-		}
-		covarianceMatrix[n][n] = 0;
-		return covarianceMatrix;
-
+		return krigingsCore.KrigingSystem.covMatrix(x, y, z, n, pSemivariogramType, nugget, range, sill);
 	}
 
 	/**
@@ -501,21 +477,7 @@ public class Krigings extends HMModel {
 	 */
 	private double[] knownTermsCalculation(double[] x, double[] y, double[] z,
 			int n) {
-
-		// known terms vector 
-		double[] gamma = new double[n + 1];
-
-
-		for (int i = 0; i < n; i++) {
-			double rx = x[i] - x[n];
-			double ry = y[i] - y[n];
-			double rz = z[i] - z[n];
-			gamma[i] = variogram(nugget, range, sill, rx, ry, rz);
-		}
-
-		gamma[n] = 1.0;
-		return gamma;
-
+		return krigingsCore.KrigingSystem.knownTerms(x, y, z, n, pSemivariogramType, nugget, range, sill);
 	}
 
 
@@ -532,19 +494,7 @@ public class Krigings extends HMModel {
 	 * @return the double value of the variance
 	 */
 	private double variogram(double nug, double range, double sill, double rx, double ry, double rz) {
-		if (isNovalue(rz)) {
-			rz = 0;
-		}
-		double h2 = Math.sqrt(rx * rx + rz * rz + ry * ry);
-		double vgmResult;
-
-		if(h2!=0){			
-			TheoreticalVariogram vgm=new TheoreticalVariogram();
-			vgmResult=vgm.calculateVGM(pSemivariogramType,h2, sill, range, nug);
-		}else {
-			vgmResult=0;
-		}
-		return vgmResult;
+		return krigingsCore.KrigingSystem.variogram(pSemivariogramType, nug, range, sill, rx, ry, rz);
 	}
 
 

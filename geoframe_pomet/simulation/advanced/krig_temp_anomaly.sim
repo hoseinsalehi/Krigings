@@ -1,0 +1,32 @@
+// Daily temperature, anomaly method with local daily lapse (final product): 1 km grid + LOO
+// Run: ./run_oms.sh simulation/advanced/krig_temp_anomaly.sim   (oms3.CLI -r, as the OMS console)
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+
+OMS3.sim {
+    resource "$home/lib"
+    model {
+        components { "krig" "pokriging.PoKriging" }
+        parameter {
+            "krig.variable"            "temp"
+            "krig.stationsFile"        "$home/data/stations_temp.csv"
+            "krig.dataFile"            "$home/data/data_temp.csv"
+            "krig.missingValue"        ""
+            "krig.mode"                "both"
+            "krig.target"              "grid"
+            "krig.crs"                 "EPSG:3035"
+            "krig.demFile"             "$home/data/dem_po_1km.asc"
+            "krig.gridCellsFile"       "$home/data/grid_cells.csv"
+            "krig.tempMethod"          "anomaly"
+            "krig.temperatureTrend"    "local"
+            "krig.periodStart"         "1991-01-01"
+            "krig.periodEnd"           "2020-12-31"
+            "krig.normalsDir"          "$home/output/normals_java"
+            "krig.outputFormat"        "netcdf"
+            "krig.quantise"            true
+            "krig.diagnostics"         true
+            "krig.threads"             12
+            "krig.outputDir"           "$home/output/krig_temp_anomaly"
+        }
+    }
+}

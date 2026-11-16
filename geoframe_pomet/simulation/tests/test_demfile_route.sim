@@ -1,0 +1,16 @@
+import static oms3.SimBuilder.instance as OMS3
+def home = oms_prj
+OMS3.sim {
+  resource "$home/lib"
+  model {
+    components { "krigP" "pokriging.PoKriging"; "krigT" "pokriging.PoKriging" }
+    parameter {
+      "krigP.variable" "precip"; "krigP.precipMethod" "twopart"; "krigP.stationsFile" "$home/data/stations_precip.csv"; "krigP.dataFile" "$home/data/data_precip.csv"
+      "krigP.demFile" "$home/data/dem_po_1km.asc"; "krigP.gridCellsFile" "$home/data/grid_cells.csv"; "krigP.mode" "both"; "krigP.periodStart" "2020-10-02"; "krigP.periodEnd" "2020-10-03"
+      "krigP.normalsDir" "$home/output/_test_domain_shp/normals"; "krigP.outputFormat" "csv"; "krigP.threads" 12; "krigP.outputDir" "$home/output/_test_domain_dem/precip"
+      "krigT.variable" "temp"; "krigT.tempMethod" "anomaly"; "krigT.stationsFile" "$home/data/stations_temp.csv"; "krigT.dataFile" "$home/data/data_temp.csv"
+      "krigT.demFile" "$home/data/dem_po_1km.asc"; "krigT.gridCellsFile" "$home/data/grid_cells.csv"; "krigT.mode" "both"; "krigT.periodStart" "2020-10-02"; "krigT.periodEnd" "2020-10-03"
+      "krigT.normalsDir" "$home/output/_test_domain_shp/normals"; "krigT.outputFormat" "csv"; "krigT.threads" 12; "krigT.outputDir" "$home/output/_test_domain_dem/temp"
+    }
+  }
+}
