@@ -13,4 +13,4 @@ Put the inputs in `geoframe_pomet/data/` (ignored by git). Their format is given
 | `dem_po_1km.asc` / `.tif` | 1-km DEM of the grid |
 
 `geoframe_pomet/tools/convert_po_inputs.py` builds these files from the station tables of the Python pipeline.
-Ask the authors for access to the prepared inputs.
+Ask the authors for access to the prepared inputs. The calibration tables, if provided, are named `occurrence_thresholds.csv` and `uncertainty_<var>.csv`.

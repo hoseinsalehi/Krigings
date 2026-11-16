@@ -41,16 +41,6 @@ The full specification is in `spec/METHOD_SPEC.md`. The input and sim keys are i
 
 ## Build and run
 
-Requirements: Java 11 and the `lib` folder of an OMS/GEOframe project. That folder must contain
-hm-* 0.10.4, geotools, commons-math3, netcdf-java 5.5.3, oms-all and groovy-all 2.3.9.
-
-```
-export GEOET_LIB=/path/to/OMS_project/lib
-export JAVA11=/path/to/jdk-11/bin          # optional
-./build.sh                                  # -> ../build/libs/Krigings-0.9.9-po1.jar
-./run_oms.sh simulation/precip.sim          # same as the OMS console with oms_prj = this folder
-./run_oms.sh simulation/temp.sim
-```
-
-In another OMS project, put `Krigings-0.9.9-po1.jar` in its `lib/` instead of the Krigings 0.9.9 jar.
-`build.gradle` at the root also lists the netcdf-java dependency; the tested build is `build.sh`.
+See `RUN.md`. The jars needed to build and run are bundled in `lib/` (see `lib/README.md`); only Java 11 and the
+input data are needed. `build.gradle` at the root lists the netcdf-java dependency as well; the tested build is
+`build.sh`.
